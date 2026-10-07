@@ -153,7 +153,6 @@ makefile text
 *.exe binary
 *.pyc binary
 
-src/NSwag.AspNetCore/SwaggerUi/**/* linguist-vendored
 src/NSwag.AspNet.Owin/SwaggerUi/**/* linguist-vendored
 src/NSwag.Integration.*/**/* linguist-vendored
 
