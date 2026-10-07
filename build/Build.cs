@@ -48,16 +48,10 @@ partial class Build : NukeBuild
 
     [Solution] readonly Solution Solution;
 
-    // the file we want to build, can be either full solution on Windows or a filtered one on other platforms
-    AbsolutePath SolutionFile;
-
     [GitRepository] readonly GitRepository GitRepository;
 
     AbsolutePath SourceDirectory => RootDirectory / "src";
     AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
-
-    AbsolutePath NSwagStudioBinaries => ArtifactsDirectory / "bin" / "NSwagStudio" / Configuration;
-    AbsolutePath NSwagNpmBinaries => SourceDirectory / "NSwag.Npm";
 
     static bool IsRunningOnWindows => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
@@ -85,8 +79,6 @@ partial class Build : NukeBuild
 
     protected override void OnBuildInitialized()
     {
-        SolutionFile = IsRunningOnWindows ? Solution.Path : SourceDirectory / "NSwag.NoInstaller.slnf";
-
         VersionPrefix = DetermineVersionPrefix();
 
         var versionParts = VersionPrefix.Split('-');
@@ -126,32 +118,22 @@ partial class Build : NukeBuild
         .Executes(() =>
         {
             NpmInstall(x => x
-                .SetProcessWorkingDirectory(SourceDirectory / "NSwag.Npm")
-            );
-
-            NpmInstall(x => x
                 .SetProcessWorkingDirectory(GetProject("NSwag.CodeGeneration.TypeScript.Tests").Directory)
             );
 
             DotNetRestore(x => x
-                .SetProjectFile(SolutionFile)
+                .SetProjectFile(Solution)
                 .SetVerbosity(DotNetVerbosity.minimal)
                 .AddProperty("BuildWithNetFrameworkHostedCompiler", "true")
             );
         });
 
-    // logic from 01_Build.bat
     Target Compile => _ => _
         .DependsOn(Restore)
         .Executes(() =>
         {
-            (SourceDirectory / "NSwag.Npm" / "bin" / "binaries").CreateOrCleanDirectory();
-            NSwagStudioBinaries.CreateOrCleanDirectory();
-
-            Serilog.Log.Information("Build and copy full .NET command line with configuration {Configuration}", Configuration);
-
             DotNetBuild(x => x
-                .SetProjectFile(SolutionFile)
+                .SetProjectFile(Solution)
                 .SetAssemblyVersion(VersionPrefix)
                 .SetFileVersion(VersionPrefix)
                 .SetInformationalVersion(VersionPrefix)
@@ -165,9 +147,6 @@ partial class Build : NukeBuild
                 .SetWarningLevel(IsServerBuild ? 0 : 1)
                 .EnableNoRestore()
             );
-
-            // later steps need to have binaries in correct places
-            PublishAndCopyConsoleProjects();
         });
 
     Target Test => _ => _
@@ -185,84 +164,6 @@ partial class Build : NukeBuild
                 );
             }
         });
-
-    void PublishAndCopyConsoleProjects()
-    {
-        var consoleCoreProject = GetProject("NSwag.ConsoleCore");
-        var consoleX86Project = GetProject("NSwag.Console.x86");
-        var consoleProject = GetProject("NSwag.Console");
-
-        Serilog.Log.Information("Publish command line projects");
-
-        void PublishConsoleProject(Project project, string[] targetFrameworks)
-        {
-            foreach (var targetFramework in targetFrameworks)
-            {
-                DotNetPublish(s => s
-                    .SetProject(project)
-                    .SetFramework(targetFramework)
-                    .SetAssemblyVersion(VersionPrefix)
-                    .SetFileVersion(VersionPrefix)
-                    .SetInformationalVersion(VersionPrefix)
-                    .SetConfiguration(Configuration)
-                    .SetDeterministic(IsServerBuild)
-                    .SetContinuousIntegrationBuild(IsServerBuild)
-                    // ensure we don't generate too much output in CI run
-                    // 0  Turns off emission of all warning messages
-                    // 1  Displays severe warning messages
-                    .SetWarningLevel(IsServerBuild ? 0 : 1)
-                    .EnableNoRestore()
-                    .EnableNoBuild()
-                );
-            }
-        }
-
-        if (IsRunningOnWindows)
-        {
-            PublishConsoleProject(consoleX86Project, ["net462"]);
-            PublishConsoleProject(consoleProject, ["net462"]);
-        }
-        PublishConsoleProject(consoleCoreProject, ["net8.0", "net9.0", "net10.0"]);
-
-        void CopyConsoleBinaries(AbsolutePath target)
-        {
-            // take just exe from X86 as other files are shared with console project
-            var configuration = Configuration.ToString().ToLowerInvariant();
-
-            if (IsRunningOnWindows)
-            {
-                var consoleX86Directory = ArtifactsDirectory / "publish" / consoleX86Project.Name / configuration;
-                (consoleX86Directory / "NSwag.x86.exe").CopyToDirectory(target / "Win");
-                (consoleX86Directory / "NSwag.x86.exe.config").CopyToDirectory(target / "Win");
-
-                (ArtifactsDirectory / "publish" / consoleProject.Name / configuration).Copy(target / "Win", ExistsPolicy.DirectoryMerge);
-            }
-
-            (ArtifactsDirectory / "publish" / consoleCoreProject.Name / (configuration + "_net8.0")).Copy(target / "Net80");
-            (ArtifactsDirectory / "publish" / consoleCoreProject.Name / (configuration + "_net9.0")).Copy(target / "Net90");
-            (ArtifactsDirectory / "publish" / consoleCoreProject.Name / (configuration + "_net10.0")).Copy(target / "Net100");
-        }
-
-        if (IsRunningOnWindows)
-        {
-            Serilog.Log.Information("Copy published Console for NSwagStudio");
-            CopyConsoleBinaries(target: NSwagStudioBinaries);
-        }
-
-        Serilog.Log.Information("Copy published Console for NPM");
-        CopyConsoleBinaries(target: SourceDirectory / "NSwag.Npm" / "bin" / "binaries");
-    }
-
-    DotNetBuildSettings BuildDefaults(DotNetBuildSettings s)
-    {
-        return s
-            .SetAssemblyVersion(VersionPrefix)
-            .SetFileVersion(VersionPrefix)
-            .SetInformationalVersion(VersionPrefix)
-            .SetConfiguration(Configuration)
-            .SetDeterministic(IsServerBuild)
-            .SetContinuousIntegrationBuild(IsServerBuild);
-    }
 
     // Solution.GetProject only returns solution's direct descendants since NUKE 7.0.1
     private Project GetProject(string projectName) =>

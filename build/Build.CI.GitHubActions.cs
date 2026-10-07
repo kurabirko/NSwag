@@ -29,7 +29,7 @@ using Nuke.Common.Utilities;
     OnPushExcludePaths = ["**/*.md"],
     PublishArtifacts = true,
     InvokedTargets = [nameof(Compile), nameof(Test), nameof(Pack), nameof(Publish)],
-    ImportSecrets = ["NUGET_API_KEY", "MYGET_API_KEY", "CHOCO_API_KEY", "NPM_AUTH_TOKEN"],
+    ImportSecrets = ["NUGET_API_KEY", "MYGET_API_KEY"],
     CacheKeyFiles = [])
 ]
 public partial class Build;
@@ -58,9 +58,6 @@ class CustomGitHubActionsAttribute : GitHubActionsAttribute
         // add artifacts manually as they would otherwise by hard to configure via attributes
         if (PublishArtifacts && onWindows)
         {
-            newSteps.Add(new GitHubActionsArtifactStep { Name = "NSwag.zip", Path = "artifacts/NSwag.zip" });
-            newSteps.Add(new GitHubActionsArtifactStep { Name = "NSwag.Npm.zip", Path = "artifacts/NSwag.Npm.zip" });
-            newSteps.Add(new GitHubActionsArtifactStep { Name = "NSwagStudio.msi", Path = "artifacts/NSwagStudio.msi" });
             newSteps.Add(new GitHubActionsArtifactStep { Name = "NuGet Packages", Path = "artifacts/*.nupkg" });
         }
 

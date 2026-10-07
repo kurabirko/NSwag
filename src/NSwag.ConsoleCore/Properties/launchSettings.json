@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "NSwag.ConsoleCore": {
-      "commandName": "Project",
-      "commandLineArgs": "run \"D:\\pfsense\\pfsense.nswag\""
-    }
-  }
-}

@@ -22,8 +22,4 @@
     <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageDownload Include="NuGet.CommandLine" Version="[6.13.2]" />
-  </ItemGroup>
-
 </Project>

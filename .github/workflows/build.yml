@@ -50,23 +50,6 @@ jobs:
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           MYGET_API_KEY: ${{ secrets.MYGET_API_KEY }}
-          CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-      - name: 'Publish: NSwag.zip'
-        uses: actions/upload-artifact@v5
-        with:
-          name: NSwag.zip
-          path: artifacts/NSwag.zip
-      - name: 'Publish: NSwag.Npm.zip'
-        uses: actions/upload-artifact@v5
-        with:
-          name: NSwag.Npm.zip
-          path: artifacts/NSwag.Npm.zip
-      - name: 'Publish: NSwagStudio.msi'
-        uses: actions/upload-artifact@v5
-        with:
-          name: NSwagStudio.msi
-          path: artifacts/NSwagStudio.msi
       - name: 'Publish: NuGet Packages'
         uses: actions/upload-artifact@v5
         with:
@@ -86,8 +69,6 @@ jobs:
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           MYGET_API_KEY: ${{ secrets.MYGET_API_KEY }}
-          CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
   macos-latest:
     name: macos-latest
     runs-on: macos-latest
@@ -102,5 +83,3 @@ jobs:
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
           MYGET_API_KEY: ${{ secrets.MYGET_API_KEY }}
-          CHOCO_API_KEY: ${{ secrets.CHOCO_API_KEY }}
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
